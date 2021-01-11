@@ -1,0 +1,195 @@
+#include <cstdio>
+#include <cstring>
+#include <algorithm>
+#include <fstream>
+
+using namespace std;
+
+const int maxs = 200020;
+const int logmaxs = 20;
+
+//const int maxs = 20;
+//const int logmaxs = 5;
+
+int n, m;
+char ls[maxs];
+int len;
+int nxtmax[maxs][logmaxs];
+
+int id1[maxs], id2[maxs];
+int r1[maxs], r2[maxs];
+int c[maxs];
+int prefix[maxs];
+
+void suffix_sort()
+{
+	memset(c, 0, sizeof(c));
+	for(int i=0; i<len; ++i)
+		c[ls[i] == '$' ? 0 : ls[i] - 'a' + 1]++;
+	for(int i=1; i<=26; ++i)
+		c[i] += c[i-1];
+	int * ra = r1, * rb = r2;
+	int * ida = id1, * idb = id2;
+	for(int i=len-1; i>=0; --i)
+	{
+		ida[--c[ls[i] == '$' ? 0 : ls[i] - 'a' + 1]] = i;
+		ra[i] = (ls[i] == '$' ? 0 : ls[i] - 'a' + 1);
+	}
+	for(int l = 1; l < len; l = l * 2)
+	{
+		memset(c, 0, sizeof(c));
+		int max = 0;
+		for(int i=0; i<len; ++i)
+		{
+			if(i+l < len) {
+				c[ra[i+l]+1] ++;
+				if(ra[i+l] >= max)
+					max = ra[i+l] + 1;
+			}
+			else
+				c[0] ++;
+		}
+		for(int i=1; i<=max; ++i)
+			c[i] += c[i-1];
+		for(int i=len-1; i>=0; --i)
+		{
+			ida[--c[i+l < len ? ra[i+l] + 1 : 0]] = i;
+		}
+
+		memset(c, 0, sizeof(c));
+		max = 0;
+		for(int i=0; i<len; ++i)
+		{
+			c[ra[i]] ++;
+			if(ra[i] > max) max = ra[i];
+		}
+		for(int i=1; i<=max; ++i)
+			c[i] += c[i-1];
+		for(int i=len-1; i>=0; --i)
+		{
+			idb[--c[ra[ida[i]]]] = ida[i];
+		}
+		int r = 0, rt1 = -1, rt2 = -1, t1, t2;
+		for(int i=0; i<len; ++i)
+		{
+			t1 = ra[idb[i]];
+			t2 = idb[i] + l < len ? ra[idb[i]+l] + 1 : 0;
+			if(t1 != rt1 || t2 != rt2)
+				r++;
+			rb[idb[i]] = r;
+			rt1 = t1;
+			rt2 = t2;
+		}
+		int * tr = ra; ra = rb; rb = tr;
+		tr = ida; ida = idb; idb = tr;
+	}
+	if(idb == id1) {
+		for(int i=0; i<len; ++i) {
+			id1[i] = ida[i];
+		}
+	}
+	for(int i=0; i<len; ++i)
+		r1[id1[i]] = i;
+}
+
+void calc_prefix() {
+	int j = 0;
+	for(int i=0; i<len; ++i)
+	{
+		if(r1[i] == 0)
+			continue;
+		int k = id1[r1[i] - 1];
+		//i+j < len && k+j < len && 
+		if(i==k && id1[r1[i]] == i)
+			for(;;);
+		while(ls[i+j]==ls[k+j]) ++j;
+		prefix[r1[i] - 1] = j;
+		if(j) --j;
+	}
+}
+
+void calc() {
+	int i, l;
+	for(int i=0; i + 1 < len; ++i)
+		nxtmax[i][0] = prefix[i];
+	for(i=1, l=1; l<len; ++i, l*=2) {
+		for(int j=0; j + 1 < len; ++j) {
+			nxtmax[j][i] = nxtmax[j][i-1];
+			if(j+l+1<len && nxtmax[j+l][i-1] < nxtmax[j][i])
+				nxtmax[j][i] = nxtmax[j+l][i-1];
+		}
+	}
+}
+
+int findmax(int l, int r) {
+	if(l>r) {
+		int t = l; l = r; r = t;
+	}
+	int L = 1 << logmaxs;
+	int i = logmaxs;
+	int res = maxs + 1;
+	while(l < r) {
+		while(l + L > r) {
+			L >>= 1;
+			i --;
+		}
+		if(nxtmax[l][i] < res)
+			res = nxtmax[l][i];
+		l += L;
+	}
+	return res;
+}
+
+void init()
+{
+	scanf("%s", ls);
+	n = strlen(ls);
+	ls[n++] = '$';
+	scanf("%s", ls+n);
+	len = strlen(ls);
+	m = len - n;
+	suffix_sort();
+	calc_prefix();
+	calc();
+}
+
+void solve() {
+	int f = 1;
+	for(int i=0; i<n-m; ++i) {
+		int l = findmax(r1[i], r1[n]);
+		if(l>=m-1) {
+			if(f) {
+				f = 0;
+			} else {
+				printf(" ");
+			}
+			printf("%d", i);
+		} else {
+			int lp = findmax(r1[i+l+1], r1[n+l+1]);
+			if(l + lp >= m-1) {
+				if(f) {
+					f = 0;
+				} else {
+					printf(" ");
+				}
+				printf("%d", i);
+			}
+		}
+	}
+	printf("\n");
+}
+
+void work()
+{
+	int q;
+	scanf("%d", &q);
+	while(q--)
+	{
+		init();
+		solve();
+	}
+}
+
+int main() {
+	work();
+}
