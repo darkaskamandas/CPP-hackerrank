@@ -1,0 +1,41 @@
+#include<cstdio>
+#include<cmath>
+#include<algorithm>
+#include<vector>
+using namespace std;
+vector<int> Fii[100010];
+int N,val[100010],i,SOL,cnt,Sum[100010],Total,viz[100010],x,y;
+
+void DFS(int X)
+{
+    Sum[X] += val[X];
+    for(vector<int>::iterator it = Fii[X].begin();it!=Fii[X].end();it++)
+    {
+        if(viz[*it])continue;
+        viz[*it] = 1;
+        DFS(*it);
+        SOL = min(SOL , abs(Total-Sum[*it]-Sum[*it]));
+        Sum[X]+=Sum[*it];
+    }
+}
+
+int main()
+{
+    scanf("%d",&N);
+    for(i=1;i<=N;i++)
+    {
+        scanf("%d",&val[i]);
+        Total += val[i];
+    }
+    for(i=1;i<N;i++)
+    {
+        scanf("%d%d",&x,&y);
+        Fii[x].push_back(y);
+        Fii[y].push_back(x);
+    }
+    SOL = Total;
+    viz[1] = 1;
+    DFS(1);
+    printf("%d\n",SOL);
+    return 0;
+}
